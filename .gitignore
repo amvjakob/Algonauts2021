@@ -125,3 +125,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data
+AlgonautsVideos268_All_30fpsmax/
+.vscode/
