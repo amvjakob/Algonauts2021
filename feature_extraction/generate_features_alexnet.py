@@ -4,7 +4,8 @@
 # 2. preprocess Alexnet features using PCA and save them in another folder
 ###
 import glob
-from alexnet import *
+import jack.MultimodalEncoding.Audio_visual.models_audio_visual.pretrained_volumetric_audio_visual_singleframe_FPN as multimodal_net 
+import jack.MultimodalEncoding.Audio_visual.dataloader_audio_visual.DataGenerator_volumetric_audio_visual_singleframe as  data_loaders
 import numpy as np
 import urllib
 import torch
@@ -13,7 +14,6 @@ import argparse
 import time
 import random
 from tqdm import tqdm
-from torchvision import transforms as trn
 import os
 from PIL import Image
 from sklearn.preprocessing import StandardScaler
@@ -22,16 +22,8 @@ from sklearn.decomposition import PCA, IncrementalPCA
 from decord import VideoReader
 from decord import cpu
 
-seed = 42
-# Torch RNG
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)
-# Python RNG
-np.random.seed(seed)
-random.seed(seed)
 
-def load_alexnet(model_checkpoints):
+def load_audiovis(model_checkpoints):
     """This function initializes an Alexnet and load
     its weights from a pretrained model
     ----------
