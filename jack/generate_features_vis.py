@@ -4,8 +4,8 @@
 # 2. preprocess Alexnet features using PCA and save them in another folder
 ###
 import glob
-import jack.MultimodalEncoding.Audio_visual.models_audio_visual.pretrained_volumetric_audio_visual_singleframe_FPN as multimodal_net 
-import jack.MultimodalEncoding.Audio_visual.dataloader_audio_visual.DataGenerator_volumetric_audio_visual_singleframe as  data_loaders
+from Multimodal.Encoding.Visual.models_visual import pretrained_resnet_volumetric_FPN
+from Multimodal.Encoding.Visual.dataloader_visual_volume import DataGenerator_vol
 import numpy as np
 import urllib
 import torch
@@ -21,10 +21,17 @@ from torch.autograd import Variable as V
 from sklearn.decomposition import PCA, IncrementalPCA
 from decord import VideoReader
 from decord import cpu
+from keras.callbacks import ModelCheckpoint, EarlyStopping,  CSVLogger
+from keras import optimizers
+from keras.utils import multi_gpu_model
+from keras.models import load_model
+from keras import optimizers
+from keras.models import Model
+from losses import LossHistory
 
 
-def load_audiovis(model_checkpoints):
-    """This function initializes an Alexnet and load
+def load_vis(model_checkpoints):
+    """This function initializes an multimodal_net and load
     its weights from a pretrained model
     ----------
     model_checkpoints : str
@@ -33,26 +40,24 @@ def load_audiovis(model_checkpoints):
     Returns
     -------
     model
-        pytorch model of alexnet
+        keras multimodal-model
 
     """
 
 
-    model = alexnet()
-    model_file = model_checkpoints
-    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
-    model_dict =["conv1.0.weight", "conv1.0.bias", "conv2.0.weight", "conv2.0.bias", "conv3.0.weight", "conv3.0.bias", "conv4.0.weight", "conv4.0.bias", "conv5.0.weight", "conv5.0.bias", "fc6.1.weight", "fc6.1.bias", "fc7.1.weight", "fc7.1.bias", "fc8.1.weight", "fc8.1.bias"]
-    state_dict={}
-    i=0
-    for k,v in checkpoint.items():
-        state_dict[model_dict[i]] =  v
-        i+=1
+    model = pretrained_resnet_volumetric_FPN(pretrained = 1)
 
-    model.load_state_dict(state_dict)
-    if torch.cuda.is_available():
-        model.cuda()
-    model.eval()
-    return model
+    IDs_train = np.genfromtxt('../preprocess/ListIDs_train.txt', dtype = 'str') 
+    IDs_val = np.genfromtxt('../preprocess/ListIDs_val.txt', dtype = 'str') 
+    
+    train_generator = DataGenerator_vol(IDs_train, dim = (720,1024), batch_size = args.batch_size, train = True, delay = args.delay)
+    val_generator = DataGenerator_vol(IDs_val, dim = (720,1024), batch_size = args.batch_size, train = False, delay = args.delay)
+
+    history = LossHistory()
+    
+    filepath = args.model_file + "-{epoch:02d}.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor="val_mean_squared_error", save_best_only=True)
+    callback_save = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=False)
 
 
 def sample_video_from_mp4(file, num_frames=16):
